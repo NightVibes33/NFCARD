@@ -4,15 +4,20 @@ import PhotosUI
 import UniformTypeIdentifiers
 
 enum NFCARDTheme {
-    static let background = Color(red: 0.015, green: 0.022, blue: 0.024)
-    static let surface = Color(red: 0.035, green: 0.052, blue: 0.052)
-    static let surfaceRaised = Color(red: 0.050, green: 0.069, blue: 0.068)
-    static let border = Color.white.opacity(0.075)
-    static let accent = Color(red: 0.27, green: 0.88, blue: 0.62)
-    static let accentSoft = Color(red: 0.11, green: 0.31, blue: 0.24)
-    static let text = Color.white
-    static let secondary = Color(red: 0.63, green: 0.67, blue: 0.68)
-    static let danger = Color(red: 1.00, green: 0.34, blue: 0.37)
+    // Palette sampled from the NFCARD neon-green app icon.
+    static let background = Color(red: 0.000, green: 0.004, blue: 0.000)       // #000100
+    static let surface = Color(red: 0.035, green: 0.122, blue: 0.020)          // #091F05
+    static let surfaceRaised = Color(red: 0.086, green: 0.267, blue: 0.043)    // #16440B
+    static let border = Color(red: 0.490, green: 0.871, blue: 0.129).opacity(0.22)
+    static let accent = Color(red: 0.490, green: 0.871, blue: 0.129)           // #7DDE21
+    static let accentBright = Color(red: 0.710, green: 0.953, blue: 0.282)     // #B5F348
+    static let accentGlow = Color(red: 0.871, green: 0.973, blue: 0.545)       // #DEF88B
+    static let accentDeep = Color(red: 0.176, green: 0.463, blue: 0.071)       // #2D7612
+    static let accentSoft = Color(red: 0.086, green: 0.267, blue: 0.043)       // #16440B
+    static let text = Color(red: 0.965, green: 1.000, blue: 0.925)
+    static let secondary = Color(red: 0.640, green: 0.720, blue: 0.620)
+    static let warning = Color(red: 1.000, green: 0.680, blue: 0.160)
+    static let danger = Color(red: 1.000, green: 0.340, blue: 0.370)
 }
 
 private struct NFCARDPanel<Content: View>: View {
@@ -122,7 +127,7 @@ struct NFCARDPairingTab: View {
             VStack(spacing: 12) {
                 HStack(spacing: 11) {
                     Circle()
-                        .fill(vm.vpnUp ? NFCARDTheme.accent : Color.orange)
+                        .fill(vm.vpnUp ? NFCARDTheme.accent : NFCARDTheme.warning)
                         .frame(width: 12, height: 12)
 
                     VStack(alignment: .leading, spacing: 2) {
