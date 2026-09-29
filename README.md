@@ -2,61 +2,105 @@
 
 [![Build NFCARD IPA](https://github.com/NightVibes33/NFCARD/actions/workflows/build.yml/badge.svg)](https://github.com/NightVibes33/NFCARD/actions/workflows/build.yml)
 
-**NFCARD** is the standalone continuation of the Wallet-card artwork work that previously lived in the Filza-27 AirCard branch. This repository is now the canonical home for NFCARD.
+**NFCARD** is a standalone iOS app for discovering Apple Wallet cards and applying custom card artwork from Photos, Files, or the built-in Card Library.
 
-NFCARD pairs with the local iPhone, discovers Apple Wallet cards, lets the user choose custom artwork, and applies that artwork through the project's Airlift-based device-service path.
-
-> **Status:** experimental. The automated build produces an **unsigned IPA** for testing and research on devices you own or are authorized to test. NFCARD is not affiliated with or endorsed by Apple.
+> **Status:** experimental development build. NFCARD is intended for testing and research on devices you own or are authorized to test. It is not affiliated with or endorsed by Apple.
 
 ## Download
 
-The rolling release is rebuilt from `main`:
-
 **[Download the latest unsigned NFCARD IPA](https://github.com/NightVibes33/NFCARD/releases/download/NFCARD-latest/NFCARD-unsigned.ipa)**
 
-Release page:
+**[View the latest NFCARD release](https://github.com/NightVibes33/NFCARD/releases/tag/NFCARD-latest)**
 
-**[NFCARD Latest](https://github.com/NightVibes33/NFCARD/releases/tag/NFCARD-latest)**
+The release includes:
 
-Every successful push to `main` also keeps the GitHub Actions artifact and SHA-256 file.
-
-## What moved from Filza-27
-
-The latest standalone NFCARD implementation was migrated from:
-
-- **Repository:** `NightVibes33/Filza-27`
-- **Branch:** `temp/aircard-wallet-standalone`
-- **Latest synchronized source commit:** `172101e48615341bebcdc62d599c5ee8530049ff`
-- **Upstream AirCard base:** `Mak5er/AirCard-iOS@097a058c984ffc33ccb697b9dfe8058be3e86244`
-
-The old Filza-27 standalone AirCard work is superseded by this repository. Future standalone NFCARD development should happen here rather than in Filza-27.
-
-The upstream AirCard revision remains deliberately pinned so upstream changes cannot silently alter NFCARD builds.
+- `NFCARD-unsigned.ipa`
+- `NFCARD-SHA256.txt`
 
 ## Features
 
-- Native dark graphite + mint NFCARD interface.
-- Local iPhone pairing with PIN handling.
-- Persistent paired state with remove/re-pair support.
-- Real LocalDevVPN readiness state rather than a generic VPN indicator.
+- Native dark graphite and mint NFCARD interface.
+- Pair the current iPhone directly from NFCARD.
+- PIN-based pairing flow with persistent paired state.
+- Remove the active pairing and pair again when needed.
+- LocalDevVPN readiness detection.
 - Live Remote Pairing Bonjour port discovery.
-- Live Apple Wallet card discovery.
-- Manual card entry when needed.
-- Per-card and bulk artwork selection from Photos or Files.
-- Card selection and artwork application.
+- Apple Wallet card discovery.
+- Manual card entry when automatic discovery is not suitable.
+- Choose artwork per card from Photos or Files.
+- Apply one artwork image to multiple cards.
+- Select, deselect, replace, or clear card artwork.
+- Apply artwork to selected Wallet cards.
 - Embedded Card Library / Card Studio.
-- Prewarmed Library WebView to avoid the previous first-open hitch/jitter.
-- Pairing plist filenames, raw pairing-file sizes, pairing logs, and network/IP diagnostics are hidden from the normal NFCARD UI.
-- Upstream Passcode and Wallpaper tabs are intentionally not exposed.
+- Preloaded Library WebView for fast opening without the previous first-open hitch.
+- User-facing pairing UI that hides raw pairing filenames, file sizes, IP addresses, ports, and internal logs.
 
-## Current identity
+## App flow
+
+```text
+Launch NFCARD
+  ↓
+Connect LocalDevVPN
+  ↓
+Pair This iPhone
+  ↓
+Approve the NFCARD pairing request and enter the PIN if requested
+  ↓
+Open Wallet and detect the target card
+  ↓
+Choose artwork
+  ↓
+Select the card
+  ↓
+Apply artwork
+  ↓
+Reopen Wallet if needed to refresh the card appearance
+```
+
+## Pairing
+
+NFCARD presents pairing as a normal app flow instead of exposing its internal pairing record.
+
+Before pairing, the app shows **Pair This iPhone**. During pairing, it shows the current pairing state and PIN when one is available. After pairing succeeds, NFCARD shows **Connected** and exposes a remove action so the pairing can be deleted and created again.
+
+The normal interface does not expose the pairing plist filename, pairing-file byte count, Remote Pairing endpoint, raw network details, or internal pairing logs.
+
+## Wallet Cards
+
+The Wallet Cards tab is the main artwork workflow.
+
+From there you can:
+
+- start or stop Wallet card discovery;
+- add a card manually;
+- choose artwork from Photos or Files;
+- assign artwork to one card or multiple cards;
+- select or deselect cards;
+- clear or replace artwork;
+- apply artwork to the selected cards.
+
+NFCARD keeps the underlying card identifiers and transport details out of the primary pairing interface while retaining the data required for the Wallet workflow.
+
+## Card Library
+
+The **Library** tab opens NFCARD Card Studio:
+
+```text
+https://cardmaker-omega.vercel.app
+```
+
+The Library WebView stays mounted and preloaded so entering the Library is immediate instead of paying the full WebKit startup cost when the tab is tapped.
+
+The site's own Discover, Studio, Library, and Export navigation remains intact. NFCARD adds only the native integration required to return to the app and import supported artwork.
+
+## Current app identity
 
 - **Display name:** `NFCARD`
 - **Bundle identifier:** `com.nightvibes33.aircard`
-- **Pinned upstream commit:** `097a058c984ffc33ccb697b9dfe8058be3e86244`
-- **Filza-27 migration head:** `172101e48615341bebcdc62d599c5ee8530049ff`
+- **Pinned AirCard upstream revision:** `097a058c984ffc33ccb697b9dfe8058be3e86244`
+- **Build output:** `.build/NFCARD-unsigned.ipa`
 
-The bundle identifier is retained for compatibility with the existing NFCARD/AirCard development state; the user-facing product name is NFCARD.
+The bundle identifier is retained for compatibility with existing NFCARD development state. The user-facing product name is **NFCARD**.
 
 ## Repository layout
 
@@ -74,7 +118,7 @@ The bundle identifier is retained for compatibility with the existing NFCARD/Air
     └── build.yml
 ```
 
-NFCARD keeps its custom UI and integration code in this repository. During a build, `scripts/build.sh` clones the pinned AirCard upstream revision, copies the NFCARD sources into it, applies the deterministic patch set, restores or rebuilds the patched AirliftFFI XCFramework, builds the app, and packages the unsigned IPA.
+NFCARD keeps its app-specific UI and integration code in this repository. The build script clones the pinned upstream revision, applies the NFCARD patch set, restores or rebuilds the patched AirliftFFI XCFramework, generates the NFCARD icon, builds the iOS app, validates the package, and produces the unsigned IPA.
 
 ## Build locally
 
@@ -85,15 +129,15 @@ NFCARD keeps its custom UI and integration code in this repository. During a bui
 - XcodeGen
 - Git
 - Python 3
-- the Rust/iOS tooling required by the pinned AirCard `build-ios.sh`
+- Rust/iOS tooling required by the pinned AirCard build
 
-Install XcodeGen if necessary:
+Install XcodeGen if needed:
 
 ```bash
 brew install xcodegen
 ```
 
-Build:
+Clone and build:
 
 ```bash
 git clone https://github.com/NightVibes33/NFCARD.git
@@ -108,70 +152,41 @@ Successful output:
 .build/NFCARD-SHA256.txt
 ```
 
-The build is fail-closed: source assertions stop the build if the pinned upstream source no longer matches the NFCARD patch assumptions.
+The build is fail-closed. NFCARD validates the expected source shape before producing an IPA so an unexpected upstream change does not silently alter the application.
 
-## GitHub Actions
+## Build verification
 
-Every push to `main`, pull request, or manual workflow dispatch runs **Build NFCARD IPA** on Xcode 26.2.
+The automated NFCARD build verifies:
 
-A green build validates and uploads:
+- the pinned upstream revision;
+- NFCARD Pairing, Wallet Cards, and Library integration;
+- NFCARD branding;
+- removal of the old Passcode and Wallpapers tabs from the active tab model;
+- Remote Pairing endpoint support;
+- Card Library integration;
+- the generated app icon;
+- the final bundle identifier and display name;
+- IPA archive integrity;
+- SHA-256 output.
 
-- `NFCARD-unsigned.ipa`
-- `NFCARD-SHA256.txt`
-- the full NFCARD build log
+A successful build publishes the unsigned IPA and checksum to the rolling **NFCARD Latest** release.
 
-For pushes to `main`, the workflow also updates the rolling `NFCARD-latest` GitHub release.
+## Technical model
 
-The patched AirliftFFI XCFramework is cached separately so normal UI-only changes do not force a Rust rebuild every run. If a restored cache is invalid, the standalone build falls back to rebuilding the XCFramework instead of accepting a broken cache.
+NFCARD uses a pinned upstream revision plus a deterministic patch layer.
 
-## Pairing and Wallet flow
+The custom source in this repository owns the NFCARD interface, Card Library integration, Remote Pairing discovery, product identity, and packaging contract. The pinned dependency prevents upstream changes from silently changing the generated app between builds.
 
-```text
-Launch NFCARD
-  ↓
-Connect LocalDevVPN
-  ↓
-Pair This iPhone
-  ↓
-Approve the NFCARD pairing request / PIN
-  ↓
-Open Wallet and detect the target card
-  ↓
-Choose artwork
-  ↓
-Select the card
-  ↓
-Apply artwork
-```
-
-Normal users are not shown the raw pairing plist filename, pairing-file size, Remote Pairing port, or internal pairing logs.
-
-## Card Library
-
-The Library tab hosts the NFCARD Card Studio at:
-
-```text
-https://cardmaker-omega.vercel.app
-```
-
-The WebView remains mounted and preloaded so opening Library avoids the old root-view replacement and cold-WebKit hitch. The site's own navigation remains intact.
-
-## Source model
-
-NFCARD intentionally uses a **pinned upstream + deterministic patch** model rather than tracking upstream `main`.
-
-That keeps the standalone project:
-
-1. reproducible without depending on the Filza-27 repository at build time;
-2. attributable to the upstream AirCard project;
-3. protected by source-shape assertions that fail if expected upstream code changes.
+The patched AirliftFFI XCFramework is cached independently so ordinary UI changes do not require rebuilding the Rust layer every time.
 
 ## Attribution
 
-NFCARD is based on **AirCard-iOS** by Johnny Franks and includes NFCARD-specific UI, standalone packaging, Card Library integration, LocalDevVPN state handling, and live Remote Pairing endpoint discovery.
+NFCARD is based on **AirCard-iOS** by Johnny Franks and adds NFCARD-specific UI, standalone packaging, Card Library integration, LocalDevVPN state handling, and live Remote Pairing endpoint discovery.
 
 The upstream project is MIT licensed. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
 
 ## Disclaimer
 
-NFCARD is experimental software intended for testing and research on devices you own or are authorized to test. Apple, Apple Wallet, iPhone, and related marks are trademarks of Apple Inc. This project is not affiliated with Apple.
+NFCARD is experimental software intended for testing and research on devices you own or are authorized to test.
+
+Apple, Apple Wallet, iPhone, and related marks are trademarks of Apple Inc. NFCARD is not affiliated with Apple.
