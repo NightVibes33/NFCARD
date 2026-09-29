@@ -1,0 +1,90 @@
+name: Build NFCARD IPA
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nfcard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26-intel
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+
+    steps:
+      - name: Xcode 26.2 setup
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.2'
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        shell: bash
+        run: |
+          set -euxo pipefail
+          command -v xcodegen >/dev/null 2>&1 || brew install xcodegen
+          xcodegen --version
+
+      - name: Restore patched AirliftFFI cache
+        uses: actions/cache@v4
+        with:
+          path: .build/cache/airlift-ffi
+          key: nfcard-airlift-macos26-xcode26.2-097a058-rp-v2
+          restore-keys: |
+            nfcard-airlift-macos26-xcode26.2-097a058-
+
+      - name: Build NFCARD IPA
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p .build
+          bash scripts/build.sh 2>&1 | tee .build/nfcard-build.log
+
+      - name: Verify artifact
+        shell: bash
+        run: |
+          set -euxo pipefail
+          IPA=.build/NFCARD-unsigned.ipa
+          test -s "$IPA"
+          unzip -tq "$IPA"
+          test -s .build/NFCARD-SHA256.txt
+          grep -Fq '097a058c984ffc33ccb697b9dfe8058be3e86244' scripts/build.sh
+          grep -Fq 'NFCARDPairingTab()' scripts/patch-upstream.py
+          grep -Fq 'NFCARDWalletCardsTab()' scripts/patch-upstream.py
+          grep -Fq 'AirCardLibraryView(onExit:' scripts/patch-upstream.py
+          grep -Fq 'Back to NFCARD' Sources/AirCardLibrary.swift
+          ! grep -Fq 'FilzaAirCard' Sources/AirCardLibrary.swift
+          du -h "$IPA"
+          cat .build/NFCARD-SHA256.txt
+
+      - name: Upload unsigned NFCARD IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: NFCARD-unsigned
+          path: |
+            .build/NFCARD-unsigned.ipa
+            .build/NFCARD-SHA256.txt
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NFCARD-build-log-${{ github.run_id }}
+          path: .build/nfcard-build.log
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 14

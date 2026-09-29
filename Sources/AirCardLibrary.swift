@@ -1,0 +1,502 @@
+import SwiftUI
+@preconcurrency import WebKit
+import UIKit
+
+private enum AirCardLibraryConfig {
+    static let homeURL = URL(string: "https://cardmaker-omega.vercel.app")!
+    static let allowedHost = "cardmaker-omega.vercel.app"
+    static let messageHandler = "aircardLibraryDownload"
+
+    static var downloadsDirectory: URL {
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let directory = documents.appendingPathComponent("AirCardCardLibrary", isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory
+    }
+}
+
+@MainActor
+private final class AirCardLibraryModel: ObservableObject {
+    @Published var statusText: String?
+    @Published var lastDownloadedName = ""
+    @Published var lastDownloadedImage: UIImage?
+    @Published var showDownloadActions = false
+
+    weak var webView: WKWebView?
+
+    func didSaveImage(_ image: UIImage, name: String) {
+        lastDownloadedImage = image
+        lastDownloadedName = name
+        statusText = "Saved \(name) in NFCARD Card Library"
+        showDownloadActions = true
+    }
+
+    func fail(_ message: String) {
+        statusText = message
+    }
+}
+
+struct AirCardLibraryView: View {
+    let onExit: () -> Void
+
+    @EnvironmentObject private var vm: AppViewModel
+    @StateObject private var model = AirCardLibraryModel()
+
+    var body: some View {
+        AirCardLibraryWebView(model: model)
+            .ignoresSafeArea(.container, edges: .all)
+            .overlay(alignment: .topTrailing) {
+                Button(action: onExit) {
+                    Image(systemName: "house.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 34, height: 34)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Back to NFCARD")
+                // Match Card Studio's top chrome: immediately left of the ellipsis.
+                .padding(.top, 6)
+                .padding(.trailing, 64)
+            }
+            .confirmationDialog(
+                "Card saved",
+                isPresented: $model.showDownloadActions,
+                titleVisibility: .visible
+            ) {
+                if model.lastDownloadedImage != nil && vm.cards.contains(where: { $0.isSelected }) {
+                    Button("Apply to Selected Wallet Cards") {
+                        if let image = model.lastDownloadedImage {
+                            vm.setSkinForAllCards(image: image)
+                        }
+                    }
+                }
+
+                Button("Keep in Card Library", role: .cancel) {}
+            } message: {
+                Text(model.lastDownloadedName.isEmpty
+                    ? "The card was saved to NFCARD."
+                    : "\(model.lastDownloadedName) was saved to NFCARD.")
+            }
+            .alert(
+                "Library Error",
+                isPresented: Binding(
+                    get: { model.statusText != nil },
+                    set: { if !$0 { model.statusText = nil } }
+                )
+            ) {
+                Button("OK") { model.statusText = nil }
+            } message: {
+                Text(model.statusText ?? "")
+            }
+    }
+}
+
+private struct AirCardLibraryWebView: UIViewRepresentable {
+    @ObservedObject var model: AirCardLibraryModel
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(model: model)
+    }
+
+    func makeUIView(context: Context) -> WKWebView {
+        let contentController = WKUserContentController()
+        contentController.add(context.coordinator, name: AirCardLibraryConfig.messageHandler)
+        contentController.addUserScript(
+            WKUserScript(
+                source: Self.pwaViewportScript,
+                injectionTime: .atDocumentStart,
+                forMainFrameOnly: true
+            )
+        )
+        contentController.addUserScript(
+            WKUserScript(
+                source: Self.nativeAppInteractionScript,
+                injectionTime: .atDocumentStart,
+                forMainFrameOnly: false
+            )
+        )
+        contentController.addUserScript(
+            WKUserScript(
+                source: Self.downloadBridgeScript,
+                injectionTime: .atDocumentStart,
+                forMainFrameOnly: false
+            )
+        )
+
+        let configuration = WKWebViewConfiguration()
+        configuration.userContentController = contentController
+        configuration.websiteDataStore = .default()
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        configuration.limitsNavigationsToAppBoundDomains = true
+
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = context.coordinator
+        webView.allowsBackForwardNavigationGestures = false
+        webView.allowsLinkPreview = false
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        webView.scrollView.contentInset = .zero
+        webView.scrollView.scrollIndicatorInsets = .zero
+        webView.scrollView.automaticallyAdjustsScrollIndicatorInsets = false
+        webView.isOpaque = false
+        webView.backgroundColor = .black
+        webView.scrollView.backgroundColor = .black
+        if #available(iOS 15.0, *) {
+            webView.underPageBackgroundColor = .black
+        }
+
+        model.webView = webView
+        webView.load(URLRequest(
+            url: AirCardLibraryConfig.homeURL,
+            cachePolicy: .useProtocolCachePolicy
+        ))
+        return webView
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        model.webView = webView
+    }
+
+    static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
+        webView.configuration.userContentController.removeScriptMessageHandler(
+            forName: AirCardLibraryConfig.messageHandler
+        )
+        webView.navigationDelegate = nil
+    }
+
+    private static let pwaViewportScript = #"""
+    (() => {
+      const applyViewportFit = () => {
+        let viewport = document.querySelector('meta[name="viewport"]');
+        if (!viewport) {
+          viewport = document.createElement('meta');
+          viewport.setAttribute('name', 'viewport');
+          viewport.setAttribute('content', 'width=device-width, initial-scale=1, viewport-fit=cover');
+          (document.head || document.documentElement).appendChild(viewport);
+          return;
+        }
+
+        const parts = (viewport.getAttribute('content') || '')
+          .split(',')
+          .map(v => v.trim())
+          .filter(Boolean)
+          .filter(v => !/^viewport-fit\s*=/i.test(v));
+
+        parts.push('viewport-fit=cover');
+        viewport.setAttribute('content', parts.join(', '));
+      };
+
+      applyViewportFit();
+      document.addEventListener('DOMContentLoaded', applyViewportFit, { once: true });
+    })();
+    """#
+
+    private static let nativeAppInteractionScript = #"""
+    (() => {
+      if (window.__airCardNativeInteractionPolicyInstalled) return;
+      window.__airCardNativeInteractionPolicyInstalled = true;
+
+      const style = document.createElement('style');
+      style.id = 'aircard-native-interaction-policy';
+      style.textContent = `
+        html, body {
+          -webkit-touch-callout: none !important;
+        }
+
+        body *:not(input):not(textarea):not([contenteditable="true"]):not([contenteditable="true"] *) {
+          -webkit-touch-callout: none !important;
+          -webkit-user-select: none !important;
+          user-select: none !important;
+        }
+
+        img, canvas, svg, video, a {
+          -webkit-touch-callout: none !important;
+          -webkit-user-select: none !important;
+          user-select: none !important;
+          -webkit-user-drag: none !important;
+        }
+
+        input, textarea, [contenteditable="true"], [contenteditable="true"] * {
+          -webkit-user-select: text !important;
+          user-select: text !important;
+        }
+      `;
+
+      const installStyle = () => {
+        if (!document.getElementById(style.id)) {
+          (document.head || document.documentElement).appendChild(style);
+        }
+      };
+
+      installStyle();
+      document.addEventListener('DOMContentLoaded', installStyle, { once: true });
+
+      const isEditable = (node) => {
+        const element = node instanceof Element ? node : node?.parentElement;
+        return !!element?.closest('input, textarea, [contenteditable="true"]');
+      };
+
+      document.addEventListener('contextmenu', (event) => {
+        if (!isEditable(event.target)) event.preventDefault();
+      }, true);
+
+      document.addEventListener('dragstart', (event) => {
+        if (!isEditable(event.target)) event.preventDefault();
+      }, true);
+
+      document.addEventListener('selectstart', (event) => {
+        if (!isEditable(event.target)) event.preventDefault();
+      }, true);
+    })();
+    """#
+
+    private static let downloadBridgeScript = #"""
+    (() => {
+      if (window.__airCardLibraryBridgeInstalled) return;
+      window.__airCardLibraryBridgeInstalled = true;
+
+      const post = (payload) => {
+        try {
+          window.webkit.messageHandlers.aircardLibraryDownload.postMessage(payload);
+        } catch (_) {}
+      };
+
+      document.addEventListener('click', async (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        const anchor = target ? target.closest('a[download]') : null;
+        if (!anchor) return;
+
+        const href = anchor.href || anchor.getAttribute('href') || '';
+        if (!href) return;
+
+        const filename = anchor.getAttribute('download') || 'card.png';
+
+        if (href.startsWith('blob:') || href.startsWith('data:')) {
+          event.preventDefault();
+          try {
+            const response = await fetch(href);
+            const blob = await response.blob();
+            const reader = new FileReader();
+            reader.onloadend = () => post({
+              kind: 'dataURL',
+              filename,
+              dataURL: String(reader.result || '')
+            });
+            reader.readAsDataURL(blob);
+          } catch (error) {
+            post({ kind: 'error', message: String(error) });
+          }
+          return;
+        }
+
+        if (/^https?:/i.test(href)) {
+          event.preventDefault();
+          post({ kind: 'url', filename, url: href });
+        }
+      }, true);
+    })();
+    """#
+
+    final class Coordinator: NSObject, WKNavigationDelegate, WKDownloadDelegate, WKScriptMessageHandler {
+        private let model: AirCardLibraryModel
+        private var downloadDestinations: [ObjectIdentifier: URL] = [:]
+
+        init(model: AirCardLibraryModel) {
+            self.model = model
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            model.statusText = nil
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            didFailProvisionalNavigation navigation: WKNavigation!,
+            withError error: Error
+        ) {
+            model.fail("Card Library unavailable offline until it has been cached at least once.")
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            didFail navigation: WKNavigation!,
+            withError error: Error
+        ) {
+            model.fail(error.localizedDescription)
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        ) {
+            if navigationAction.shouldPerformDownload {
+                decisionHandler(.download)
+                return
+            }
+
+            guard let url = navigationAction.request.url else {
+                decisionHandler(.cancel)
+                return
+            }
+
+            if url.scheme == "about" || url.host?.lowercased() == AirCardLibraryConfig.allowedHost {
+                decisionHandler(.allow)
+                return
+            }
+
+            if let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" {
+                UIApplication.shared.open(url)
+            }
+            decisionHandler(.cancel)
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationResponse: WKNavigationResponse,
+            decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void
+        ) {
+            if !navigationResponse.canShowMIMEType {
+                decisionHandler(.download)
+            } else {
+                decisionHandler(.allow)
+            }
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            navigationAction: WKNavigationAction,
+            didBecome download: WKDownload
+        ) {
+            download.delegate = self
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            navigationResponse: WKNavigationResponse,
+            didBecome download: WKDownload
+        ) {
+            download.delegate = self
+        }
+
+        func download(
+            _ download: WKDownload,
+            decideDestinationUsing response: URLResponse,
+            suggestedFilename: String,
+            completionHandler: @escaping (URL?) -> Void
+        ) {
+            let destination = Self.uniqueDestination(for: suggestedFilename)
+            downloadDestinations[ObjectIdentifier(download)] = destination
+            completionHandler(destination)
+        }
+
+        func downloadDidFinish(_ download: WKDownload) {
+            let key = ObjectIdentifier(download)
+            guard let url = downloadDestinations.removeValue(forKey: key) else { return }
+            guard let data = try? Data(contentsOf: url),
+                  let image = UIImage(data: data) else {
+                try? FileManager.default.removeItem(at: url)
+                model.fail("The downloaded file was not an image.")
+                return
+            }
+            model.didSaveImage(image, name: url.lastPathComponent)
+        }
+
+        func download(
+            _ download: WKDownload,
+            didFailWithError error: Error,
+            resumeData: Data?
+        ) {
+            if let url = downloadDestinations.removeValue(forKey: ObjectIdentifier(download)) {
+                try? FileManager.default.removeItem(at: url)
+            }
+            model.fail("Card download failed: \(error.localizedDescription)")
+        }
+
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == AirCardLibraryConfig.messageHandler,
+                  let body = message.body as? [String: Any],
+                  let kind = body["kind"] as? String else { return }
+
+            if kind == "error" {
+                model.fail((body["message"] as? String) ?? "Card download failed.")
+                return
+            }
+
+            let filename = (body["filename"] as? String) ?? "card.png"
+
+            if kind == "dataURL",
+               let raw = body["dataURL"] as? String,
+               let comma = raw.firstIndex(of: ","),
+               raw[..<comma].contains(";base64") {
+                let encoded = String(raw[raw.index(after: comma)...])
+                guard let data = Data(base64Encoded: encoded) else {
+                    model.fail("Could not decode the downloaded card image.")
+                    return
+                }
+                persistImage(data: data, suggestedFilename: filename)
+                return
+            }
+
+            if kind == "url",
+               let raw = body["url"] as? String,
+               let url = URL(string: raw),
+               ["http", "https"].contains(url.scheme?.lowercased() ?? "") {
+                Task {
+                    do {
+                        var request = URLRequest(url: url)
+                        request.cachePolicy = .returnCacheDataElseLoad
+                        let (data, response) = try await URLSession.shared.data(for: request)
+                        if let http = response as? HTTPURLResponse,
+                           !(200...299).contains(http.statusCode) {
+                            throw URLError(.badServerResponse)
+                        }
+                        persistImage(data: data, suggestedFilename: filename)
+                    } catch {
+                        model.fail("Card download failed: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+
+        private func persistImage(data: Data, suggestedFilename: String) {
+            guard let image = UIImage(data: data) else {
+                model.fail("The downloaded file was not a supported image.")
+                return
+            }
+
+            let destination = Self.uniqueDestination(for: suggestedFilename)
+            do {
+                try data.write(to: destination, options: .atomic)
+                model.didSaveImage(image, name: destination.lastPathComponent)
+            } catch {
+                model.fail("Could not save card image: \(error.localizedDescription)")
+            }
+        }
+
+        private static func uniqueDestination(for suggestedFilename: String) -> URL {
+            let cleaned = sanitizeFilename(suggestedFilename)
+            let nsName = cleaned as NSString
+            var stem = nsName.deletingPathExtension
+            var ext = nsName.pathExtension
+            if stem.isEmpty { stem = "card" }
+            if ext.isEmpty { ext = "png" }
+
+            let directory = AirCardLibraryConfig.downloadsDirectory
+            var candidate = directory.appendingPathComponent("\(stem).\(ext)")
+            var suffix = 2
+            while FileManager.default.fileExists(atPath: candidate.path) {
+                candidate = directory.appendingPathComponent("\(stem)-\(suffix).\(ext)")
+                suffix += 1
+            }
+            return candidate
+        }
+
+        private static func sanitizeFilename(_ value: String) -> String {
+            let raw = (value as NSString).lastPathComponent
+            let invalid = CharacterSet(charactersIn: "/\\:?%*|\"<>")
+            let parts = raw.components(separatedBy: invalid).filter { !$0.isEmpty }
+            let joined = parts.joined(separator: "-").trimmingCharacters(in: .whitespacesAndNewlines)
+            return joined.isEmpty ? "card.png" : joined
+        }
+    }
+}
