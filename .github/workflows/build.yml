@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: nfcard-${{ github.ref }}
@@ -88,3 +88,33 @@ jobs:
           if-no-files-found: warn
           include-hidden-files: true
           retention-days: 14
+
+      - name: Publish rolling NFCARD release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          TAG=NFCARD-latest
+
+          git tag -f "$TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG" --force
+
+          cat > .build/release-notes.md <<'EOF'
+          Rolling unsigned NFCARD development build from `main`.
+
+          This release supersedes the standalone AirCard build that previously lived under Filza-27.
+
+          Assets:
+          - `NFCARD-unsigned.ipa`
+          - `NFCARD-SHA256.txt`
+          EOF
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG"               --title "NFCARD Latest"               --notes-file .build/release-notes.md
+          else
+            gh release create "$TAG"               --title "NFCARD Latest"               --notes-file .build/release-notes.md
+          fi
+
+          gh release upload "$TAG"             .build/NFCARD-unsigned.ipa             .build/NFCARD-SHA256.txt             --clobber

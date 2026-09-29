@@ -11,6 +11,6 @@ NFCARD-specific work was migrated from:
 
 - **Repository:** NightVibes33/Filza-27
 - **Branch:** `temp/aircard-wallet-standalone`
-- **Migration baseline:** `fca787e1f565f715bdd5c7bc07a3118a2ee2e506`
+- **Latest synchronized migration head:** `172101e48615341bebcdc62d599c5ee8530049ff`
 
-The pinned-upstream model is intentional: the build uses source assertions and fails if upstream assumptions no longer match the NFCARD patch set.
+The standalone AirCard work in Filza-27 is superseded by the NFCARD repository. The pinned-upstream model is intentional: the build uses source assertions and fails if upstream assumptions no longer match the NFCARD patch set.
