@@ -102,9 +102,7 @@ jobs:
           git push origin "refs/tags/$TAG" --force
 
           cat > .build/release-notes.md <<'EOF'
-          Rolling unsigned NFCARD development build from `main`.
-
-          This release supersedes the standalone AirCard build that previously lived under Filza-27.
+          Rolling unsigned NFCARD development build.
 
           Assets:
           - `NFCARD-unsigned.ipa`
