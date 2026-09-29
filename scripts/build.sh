@@ -21,8 +21,9 @@ cp "$ROOT/Sources/RemotePairingPortDiscovery.swift" "$SRC/ios-app/RemotePairingP
 cp "$ROOT/Sources/NFCARDNativeShell.swift" "$SRC/ios-app/NFCARDNativeShell.swift"
 python3 "$ROOT/scripts/patch-upstream.py" "$SRC"
 
-ICON_SRC="$ROOT/.build/NFCARDIcon.png"
-python3 "$ROOT/scripts/generate-nfcard-icon.py" "$ICON_SRC"
+ICON_SRC="$ROOT/Assets/NFCARDIconSource.jpg"
+test -s "$ICON_SRC"
+echo '711861b3abd615dd5e8b008cbb963c7cf1bbcf44b3eb70c3dc019413fb8bdeed  Assets/NFCARDIconSource.jpg' | (cd "$ROOT" && shasum -a 256 -c -)
 sips -z 120 120 "$ICON_SRC" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-60@2x.png" >/dev/null
 sips -z 180 180 "$ICON_SRC" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-60@3x.png" >/dev/null
 sips -z 152 152 "$ICON_SRC" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-76@2x.png" >/dev/null
