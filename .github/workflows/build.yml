@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - temp/icon-green-theme
   pull_request:
   workflow_dispatch:
 
