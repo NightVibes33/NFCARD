@@ -37,6 +37,25 @@ jobs:
           command -v xcodegen >/dev/null 2>&1 || brew install xcodegen
           xcodegen --version
 
+      - name: Materialize NFCARD icon asset
+        if: github.ref == 'refs/heads/temp/icon-green-theme'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          ICON=Assets/NFCARDIconSource.jpg
+          if [ ! -s "$ICON" ]; then
+            mkdir -p Assets
+            curl -fL --retry 3 \
+              'https://d2ol7oe51mr4n9.cloudfront.net/user_3JA62RTSWrerhK4O20lVs9K7hJj/a068807b-c621-4558-b3e5-234a0e3a06b0.jpg' \
+              -o "$ICON"
+            echo '711861b3abd615dd5e8b008cbb963c7cf1bbcf44b3eb70c3dc019413fb8bdeed  Assets/NFCARDIconSource.jpg' | shasum -a 256 -c -
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add "$ICON"
+            git commit -m 'assets: add supplied NFCARD app icon'
+            git push origin HEAD:temp/icon-green-theme
+          fi
+
       - name: Restore patched AirliftFFI cache
         uses: actions/cache@v4
         with:
