@@ -32,7 +32,7 @@ s = p.read_text()
 s = s.replace("rm -rf build/DerivedData build/Payload build/*.app build/*.ipa\nmkdir -p build\n", "rm -rf build/Payload build/*.app build/*.ipa\nmkdir -p build\nDERIVED_DATA=\"${NFCARD_DERIVED_DATA:-$ROOT/build/DerivedData}\"\nmkdir -p \"$DERIVED_DATA\"\n", 1)
 s = s.replace("-derivedDataPath build/DerivedData \\\n    -destination", "-derivedDataPath \"$DERIVED_DATA\" \\\n    -destination", 1)
 s = s.replace("    clean build \\\n", "    build \\\n", 1)
-s = s.replace("APP_PATH=\"$(find build/DerivedData/Build/Products -name \\\"AirCard-iOS.app\\\" -type d | head -n 1)\"", "APP_PATH=\"$(find \\\"$DERIVED_DATA/Build/Products\\\" -name \\\"AirCard-iOS.app\\\" -type d | head -n 1)\"", 1)
+s = s.replace("build/DerivedData/Build/Products", "$DERIVED_DATA/Build/Products", 1)
 p.write_text(s)
 PY
 export NFCARD_DERIVED_DATA="$XCODE_DERIVED_CACHE"
