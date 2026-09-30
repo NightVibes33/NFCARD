@@ -225,37 +225,11 @@ struct NFCARDPairingTab: View {
                             .fixedSize(horizontal: false, vertical: true)
 
                         Button {
-                            let openOriginalSettings = {
-                                if let url = URL(string: UIApplication.openSettingsURLString) {
-                                    UIApplication.shared.open(url)
-                                }
-                            }
-
-                            let openDeveloperSettings = {
-                                guard let developerURL = URL(string: "App-Prefs:root=DEVELOPER_SETTINGS") else {
-                                    openOriginalSettings()
-                                    return
-                                }
-
-                                UIApplication.shared.open(developerURL, options: [:]) { opened in
-                                    if !opened {
-                                        openOriginalSettings()
-                                    }
-                                }
-                            }
-
-                            guard let developerPairingURL = URL(string: "App-Prefs:root=DEVELOPER_SETTINGS#DTPairedDevicesGroup") else {
-                                openDeveloperSettings()
-                                return
-                            }
-
-                            UIApplication.shared.open(developerPairingURL, options: [:]) { opened in
-                                if !opened {
-                                    openDeveloperSettings()
-                                }
+                            if let url = URL(string: "App-Prefs:") {
+                                UIApplication.shared.open(url)
                             }
                         } label: {
-                            Label("Open Pairing Settings", systemImage: "arrow.up.forward.app")
+                            Label("Open Settings", systemImage: "arrow.up.forward.app")
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 42)
