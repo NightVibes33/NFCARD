@@ -8,6 +8,8 @@ WORK="$ROOT/.build/work"
 SRC="$WORK/AirCard-iOS"
 OUTPUT="$ROOT/.build/NFCARD-unsigned.ipa"
 AIRLIFT_CACHE="$ROOT/.build/cache/airlift-ffi"
+RUST_TARGET_CACHE="$ROOT/.build/cache/rust-target"
+XCODE_DERIVED_CACHE="$ROOT/.build/cache/xcode-derived-data"
 
 rm -rf "$WORK"
 mkdir -p "$WORK" "$ROOT/.build"
@@ -20,6 +22,20 @@ cp "$ROOT/Sources/AirCardLibrary.swift" "$SRC/ios-app/AirCardLibrary.swift"
 cp "$ROOT/Sources/RemotePairingPortDiscovery.swift" "$SRC/ios-app/RemotePairingPortDiscovery.swift"
 cp "$ROOT/Sources/NFCARDNativeShell.swift" "$SRC/ios-app/NFCARDNativeShell.swift"
 python3 "$ROOT/scripts/patch-upstream.py" "$SRC"
+
+# Preserve Xcode DerivedData across CI runs instead of forcing a full clean build.
+python3 - "$SRC/build-ipa.sh" <<'PY'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+s = p.read_text()
+s = s.replace("rm -rf build/DerivedData build/Payload build/*.app build/*.ipa\\nmkdir -p build\\n", "rm -rf build/Payload build/*.app build/*.ipa\\nmkdir -p build\\nDERIVED_DATA=\"${NFCARD_DERIVED_DATA:-$ROOT/build/DerivedData}\"\\nmkdir -p \"$DERIVED_DATA\"\\n", 1)
+s = s.replace("-derivedDataPath build/DerivedData \\\\n    -destination", "-derivedDataPath \"$DERIVED_DATA\" \\\\n    -destination", 1)
+s = s.replace("    clean build \\\\n", "    build \\\\n", 1)
+s = s.replace("APP_PATH=\"$(find build/DerivedData/Build/Products -name \\\"AirCard-iOS.app\\\" -type d | head -n 1)\"", "APP_PATH=\"$(find \\\"$DERIVED_DATA/Build/Products\\\" -name \\\"AirCard-iOS.app\\\" -type d | head -n 1)\"", 1)
+p.write_text(s)
+PY
+export NFCARD_DERIVED_DATA="$XCODE_DERIVED_CACHE"
 
 ICON_SRC="$ROOT/Assets/NFCARDIconSource.jpg"
 ICON_CROPPED="$ROOT/.build/NFCARDIconCropped.jpg"
@@ -56,6 +72,9 @@ fi
 
 if [ "$RESTORED_AIRLIFT" -ne 1 ]; then
   echo "==> AirliftFFI cache miss; rebuilding patched Rust/XCFramework"
+  mkdir -p "$RUST_TARGET_CACHE"
+  rm -rf "$SRC/rust-core/target"
+  ln -s "$RUST_TARGET_CACHE" "$SRC/rust-core/target"
   chmod +x "$SRC/build-ios.sh"
   (
     cd "$SRC"
