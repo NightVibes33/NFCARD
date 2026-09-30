@@ -214,6 +214,16 @@ struct NFCARDPairingTab: View {
                     }
                     .buttonStyle(.plain)
                 } else if vm.pairingPhase == .pairing {
+                    HStack(spacing: 9) {
+                        ProgressView()
+                            .tint(NFCARDTheme.accent)
+
+                        Text(vm.pairingStatus.isEmpty ? "Starting local pairing host…" : vm.pairingStatus)
+                            .font(.caption)
+                            .foregroundStyle(NFCARDTheme.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
                     if let pin = vm.pairingPIN {
                         VStack(alignment: .leading, spacing: 12) {
                             Label("Pairing code ready", systemImage: "key.fill")
@@ -242,23 +252,22 @@ struct NFCARDPairingTab: View {
                             .padding(12)
                             .background(NFCARDTheme.accentSoft.opacity(0.8), in: RoundedRectangle(cornerRadius: 12))
 
-                            Text("Enter this code when iOS asks to pair with NFCARD. Approve the request, then return here.")
+                            Text("Open Settings, enter this code when prompted, approve the request, then return to NFCARD.")
                                 .font(.caption)
                                 .foregroundStyle(NFCARDTheme.secondary)
-                        }
-                    } else {
-                        HStack(spacing: 11) {
-                            ProgressView()
-                                .tint(NFCARDTheme.accent)
 
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("Pairing with NFCARD")
-                                    .font(.headline)
-                                    .foregroundStyle(NFCARDTheme.text)
-                                Text("Keep NFCARD open while iOS prepares the pairing request.")
-                                    .font(.caption)
-                                    .foregroundStyle(NFCARDTheme.secondary)
+                            Button {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    UIApplication.shared.open(url)
+                                }
+                            } label: {
+                                Label("Open Settings", systemImage: "arrow.up.forward.app")
+                                    .font(.subheadline.weight(.bold))
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 42)
                             }
+                            .buttonStyle(.bordered)
+                            .tint(NFCARDTheme.accent)
                         }
                     }
 
