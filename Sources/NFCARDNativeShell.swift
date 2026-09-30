@@ -226,12 +226,12 @@ struct NFCARDPairingTab: View {
 
                         Button {
                             let fallback = {
-                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                if let url = URL(string: "App-Prefs:root=DEVELOPER_SETTINGS") {
                                     UIApplication.shared.open(url)
                                 }
                             }
 
-                            guard let developerPairingURL = URL(string: "prefs:root=DEVELOPER_SETTINGS#DTPairedDevicesGroup") else {
+                            guard let developerPairingURL = URL(string: "App-Prefs:root=DEVELOPER_SETTINGS#DTPairedDevicesGroup") else {
                                 fallback()
                                 return
                             }
