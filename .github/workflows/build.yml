@@ -41,9 +41,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .build/cache/airlift-ffi
-          key: nfcard-airlift-${{ runner.os }}-${{ runner.arch }}-xcode26.2-097a058-${{ hashFiles('scripts/patch-upstream.py', 'scripts/build.sh') }}
+          key: nfcard-airlift-macos26-xcode26.2-097a058-rp-v2
           restore-keys: |
-            nfcard-airlift-${{ runner.os }}-${{ runner.arch }}-xcode26.2-097a058-
+            nfcard-airlift-macos26-xcode26.2-097a058-
 
       - name: Restore Rust build cache
         uses: actions/cache@v4
