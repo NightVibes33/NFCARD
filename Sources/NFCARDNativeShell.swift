@@ -142,14 +142,6 @@ struct NFCARDPairingTab: View {
                     }
 
                     Spacer()
-
-                    Text("iOS \(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)\nv1.3")
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(NFCARDTheme.accent)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 6)
-                        .background(NFCARDTheme.accentSoft, in: RoundedRectangle(cornerRadius: 9))
                 }
 
                 Button {
