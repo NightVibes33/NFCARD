@@ -8,6 +8,8 @@ WORK="$ROOT/.build/work"
 SRC="$WORK/AirCard-iOS"
 OUTPUT="$ROOT/.build/NFCARD-unsigned.ipa"
 AIRLIFT_CACHE="$ROOT/.build/cache/airlift-ffi"
+RUST_TARGET_CACHE="$ROOT/.build/cache/rust-target"
+XCODE_DERIVED_CACHE="$ROOT/.build/cache/xcode-derived-data"
 
 rm -rf "$WORK"
 mkdir -p "$WORK" "$ROOT/.build"
@@ -21,13 +23,37 @@ cp "$ROOT/Sources/RemotePairingPortDiscovery.swift" "$SRC/ios-app/RemotePairingP
 cp "$ROOT/Sources/NFCARDNativeShell.swift" "$SRC/ios-app/NFCARDNativeShell.swift"
 python3 "$ROOT/scripts/patch-upstream.py" "$SRC"
 
-ICON_SRC="$ROOT/.build/NFCARDIcon.png"
-python3 "$ROOT/scripts/generate-nfcard-icon.py" "$ICON_SRC"
-sips -z 120 120 "$ICON_SRC" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-60@2x.png" >/dev/null
-sips -z 180 180 "$ICON_SRC" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-60@3x.png" >/dev/null
-sips -z 152 152 "$ICON_SRC" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-76@2x.png" >/dev/null
-sips -z 167 167 "$ICON_SRC" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-83.5@2x.png" >/dev/null
-sips -z 1024 1024 "$ICON_SRC" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon.png" >/dev/null
+# Preserve Xcode DerivedData across CI runs instead of forcing a full clean build.
+python3 - "$SRC/build-ipa.sh" <<'PY'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+s = p.read_text()
+s = s.replace("rm -rf build/DerivedData build/Payload build/*.app build/*.ipa\nmkdir -p build\n", "rm -rf build/Payload build/*.app build/*.ipa\nmkdir -p build\nDERIVED_DATA=\"${NFCARD_DERIVED_DATA:-$ROOT/build/DerivedData}\"\nmkdir -p \"$DERIVED_DATA\"\n", 1)
+s = s.replace("-derivedDataPath build/DerivedData \\\n    -destination", "-derivedDataPath \"$DERIVED_DATA\" \\\n    -destination", 1)
+s = s.replace("    clean build \\\n", "    build \\\n", 1)
+s = s.replace("APP_PATH=\"$(find build/DerivedData/Build/Products -name \\\"AirCard-iOS.app\\\" -type d | head -n 1)\"", "APP_PATH=\"$(find \\\"$DERIVED_DATA/Build/Products\\\" -name \\\"AirCard-iOS.app\\\" -type d | head -n 1)\"", 1)
+p.write_text(s)
+PY
+export NFCARD_DERIVED_DATA="$XCODE_DERIVED_CACHE"
+
+ICON_SRC="$ROOT/Assets/NFCARDIconSource.jpg"
+ICON_CROPPED="$ROOT/.build/NFCARDIconCropped.jpg"
+test -s "$ICON_SRC"
+echo '711861b3abd615dd5e8b008cbb963c7cf1bbcf44b3eb70c3dc019413fb8bdeed  Assets/NFCARDIconSource.jpg' | (cd "$ROOT" && shasum -a 256 -c -)
+
+# The supplied artwork already contains a rounded-square icon inside a black
+# 1254x1254 canvas. Crop away that outer black margin before generating the
+# AppIcon sizes; iOS supplies its own icon mask, so feeding the uncropped source
+# makes the artwork look double-inset on the Home Screen.
+sips -c 1060 1060 "$ICON_SRC" --out "$ICON_CROPPED" >/dev/null
+test -s "$ICON_CROPPED"
+
+sips -z 120 120 "$ICON_CROPPED" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-60@2x.png" >/dev/null
+sips -z 180 180 "$ICON_CROPPED" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-60@3x.png" >/dev/null
+sips -z 152 152 "$ICON_CROPPED" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-76@2x.png" >/dev/null
+sips -z 167 167 "$ICON_CROPPED" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-83.5@2x.png" >/dev/null
+sips -z 1024 1024 "$ICON_CROPPED" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon.png" >/dev/null
 
 # The scanner transport is patched in rust-core. Reuse the exact patched
 # AirliftFFI XCFramework when Actions restored it; otherwise build it once
@@ -46,6 +72,9 @@ fi
 
 if [ "$RESTORED_AIRLIFT" -ne 1 ]; then
   echo "==> AirliftFFI cache miss; rebuilding patched Rust/XCFramework"
+  mkdir -p "$RUST_TARGET_CACHE"
+  rm -rf "$SRC/rust-core/target"
+  ln -s "$RUST_TARGET_CACHE" "$SRC/rust-core/target"
   chmod +x "$SRC/build-ios.sh"
   (
     cd "$SRC"

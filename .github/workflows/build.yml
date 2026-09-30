@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - temp/icon-green-theme
   pull_request:
   workflow_dispatch:
 
@@ -43,6 +44,25 @@ jobs:
           key: nfcard-airlift-macos26-xcode26.2-097a058-rp-v2
           restore-keys: |
             nfcard-airlift-macos26-xcode26.2-097a058-
+
+      - name: Restore Rust build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            .build/cache/rust-target
+          key: nfcard-rust-${{ runner.os }}-${{ runner.arch }}-097a058-${{ hashFiles('scripts/patch-upstream.py', 'scripts/build.sh') }}
+          restore-keys: |
+            nfcard-rust-${{ runner.os }}-${{ runner.arch }}-097a058-
+
+      - name: Restore Xcode DerivedData cache
+        uses: actions/cache@v4
+        with:
+          path: .build/cache/xcode-derived-data
+          key: nfcard-xcode-${{ runner.os }}-${{ runner.arch }}-26.2-${{ hashFiles('Sources/**', 'scripts/patch-upstream.py', 'scripts/build.sh') }}
+          restore-keys: |
+            nfcard-xcode-${{ runner.os }}-${{ runner.arch }}-26.2-
 
       - name: Build NFCARD IPA
         shell: bash
