@@ -225,7 +225,7 @@ struct NFCARDPairingTab: View {
                             .fixedSize(horizontal: false, vertical: true)
 
                         Button {
-                            if let url = URL(string: "App-Prefs:") {
+                            if let url = URL(string: "prefs:root=ROOT") {
                                 UIApplication.shared.open(url)
                             }
                         } label: {
