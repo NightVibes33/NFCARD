@@ -470,10 +470,4 @@ s = pairing_controller.read_text()
 s = s.replace('private let hostName = "AirCard-iOS"', 'private let hostName = "NFCARD"')
 s = s.replace("Settings › AirCard-iOS › Local Network", "Settings › NFCARD › Local Network")
 s = s.replace("Pair with AirCard-iOS", "Pair with NFCARD")
-s = s.replace('pairingStatus = "Broadcasting… open Settings to pair"', 'pairingStatus = "Waiting for iOS pairing request…"')
-s = s.replace('pairingStatus = "Advertising — open Settings › Privacy & Security › Developer Mode"', 'pairingStatus = "Waiting for iOS pairing request…"')
-s = s.replace(
-    'pairingStatus = "Enter PIN \\(pin) in Settings › Privacy & Security › Developer Mode › Pair with NFCARD"',
-    'pairingStatus = "Pairing code ready"'
-)
 pairing_controller.write_text(s)
