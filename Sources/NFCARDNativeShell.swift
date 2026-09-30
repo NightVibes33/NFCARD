@@ -225,11 +225,24 @@ struct NFCARDPairingTab: View {
                             .fixedSize(horizontal: false, vertical: true)
 
                         Button {
-                            if let url = URL(string: UIApplication.openSettingsURLString) {
-                                UIApplication.shared.open(url)
+                            let fallback = {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }
+
+                            guard let developerPairingURL = URL(string: "prefs:root=DEVELOPER_SETTINGS#DTPairedDevicesGroup") else {
+                                fallback()
+                                return
+                            }
+
+                            UIApplication.shared.open(developerPairingURL, options: [:]) { opened in
+                                if !opened {
+                                    fallback()
+                                }
                             }
                         } label: {
-                            Label("Open Settings", systemImage: "arrow.up.forward.app")
+                            Label("Open Pairing Settings", systemImage: "arrow.up.forward.app")
                                 .font(.subheadline.weight(.bold))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 42)
