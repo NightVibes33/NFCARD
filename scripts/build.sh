@@ -22,13 +22,22 @@ cp "$ROOT/Sources/NFCARDNativeShell.swift" "$SRC/ios-app/NFCARDNativeShell.swift
 python3 "$ROOT/scripts/patch-upstream.py" "$SRC"
 
 ICON_SRC="$ROOT/Assets/NFCARDIconSource.jpg"
+ICON_CROPPED="$ROOT/.build/NFCARDIconCropped.jpg"
 test -s "$ICON_SRC"
 echo '711861b3abd615dd5e8b008cbb963c7cf1bbcf44b3eb70c3dc019413fb8bdeed  Assets/NFCARDIconSource.jpg' | (cd "$ROOT" && shasum -a 256 -c -)
-sips -z 120 120 "$ICON_SRC" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-60@2x.png" >/dev/null
-sips -z 180 180 "$ICON_SRC" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-60@3x.png" >/dev/null
-sips -z 152 152 "$ICON_SRC" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-76@2x.png" >/dev/null
-sips -z 167 167 "$ICON_SRC" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-83.5@2x.png" >/dev/null
-sips -z 1024 1024 "$ICON_SRC" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon.png" >/dev/null
+
+# The supplied artwork already contains a rounded-square icon inside a black
+# 1254x1254 canvas. Crop away that outer black margin before generating the
+# AppIcon sizes; iOS supplies its own icon mask, so feeding the uncropped source
+# makes the artwork look double-inset on the Home Screen.
+sips -c 1060 1060 "$ICON_SRC" --out "$ICON_CROPPED" >/dev/null
+test -s "$ICON_CROPPED"
+
+sips -z 120 120 "$ICON_CROPPED" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-60@2x.png" >/dev/null
+sips -z 180 180 "$ICON_CROPPED" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-60@3x.png" >/dev/null
+sips -z 152 152 "$ICON_CROPPED" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-76@2x.png" >/dev/null
+sips -z 167 167 "$ICON_CROPPED" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon-83.5@2x.png" >/dev/null
+sips -z 1024 1024 "$ICON_CROPPED" --out "$SRC/ios-app/Assets.xcassets/AppIcon.appiconset/AppIcon.png" >/dev/null
 
 # The scanner transport is patched in rust-core. Reuse the exact patched
 # AirliftFFI XCFramework when Actions restored it; otherwise build it once
