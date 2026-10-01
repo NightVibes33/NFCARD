@@ -117,6 +117,9 @@ jobs:
         run: |
           set -euxo pipefail
           TAG=NFCARD-latest
+          RELEASE_IPA=.build/NFCARD.ipa
+
+          cp .build/NFCARD-unsigned.ipa "$RELEASE_IPA"
 
           git tag -f "$TAG" "$GITHUB_SHA"
           git push origin "refs/tags/$TAG" --force
@@ -124,15 +127,23 @@ jobs:
           cat > .build/release-notes.md <<'EOF'
           Rolling unsigned NFCARD development build.
 
-          Assets:
-          - `NFCARD-unsigned.ipa`
-          - `NFCARD-SHA256.txt`
+          Asset:
+          - `NFCARD.ipa`
           EOF
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG"               --title "NFCARD Latest"               --notes-file .build/release-notes.md
+            gh release edit "$TAG" \
+              --title "NFCARD Latest" \
+              --notes-file .build/release-notes.md
           else
-            gh release create "$TAG"               --title "NFCARD Latest"               --notes-file .build/release-notes.md
+            gh release create "$TAG" \
+              --title "NFCARD Latest" \
+              --notes-file .build/release-notes.md
           fi
 
-          gh release upload "$TAG"             .build/NFCARD-unsigned.ipa             .build/NFCARD-SHA256.txt             --clobber
+          gh release delete-asset "$TAG" NFCARD-unsigned.ipa -y >/dev/null 2>&1 || true
+          gh release delete-asset "$TAG" NFCARD-SHA256.txt -y >/dev/null 2>&1 || true
+
+          gh release upload "$TAG" \
+            "$RELEASE_IPA" \
+            --clobber

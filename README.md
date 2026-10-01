@@ -8,14 +8,13 @@
 
 ## Download
 
-**[Download the latest unsigned NFCARD IPA](https://github.com/NightVibes33/NFCARD/releases/download/NFCARD-latest/NFCARD-unsigned.ipa)**
+### Latest release
 
-**[View the latest NFCARD release](https://github.com/NightVibes33/NFCARD/releases/tag/NFCARD-latest)**
+**[Download NFCARD.ipa](https://github.com/NightVibes33/NFCARD/releases/download/NFCARD-latest/NFCARD.ipa)**
 
-The release includes:
+[View release notes and assets](https://github.com/NightVibes33/NFCARD/releases/tag/NFCARD-latest)
 
-- `NFCARD-unsigned.ipa`
-- `NFCARD-SHA256.txt`
+The rolling **NFCARD Latest** release contains the current unsigned development build as `NFCARD.ipa`.
 
 ## Features
 
@@ -59,13 +58,21 @@ Reopen Wallet if needed to refresh the card appearance
 
 ## Pairing
 
+<p align="center">
+  <img src="Assets/Screenshots/pairing.jpg" alt="NFCARD Pairing screen" width="240">
+</p>
+
 NFCARD presents pairing as a normal app flow instead of exposing its internal pairing record.
 
-Before pairing, the app shows **Pair This iPhone**. During pairing, it shows the current pairing state and PIN when one is available. After pairing succeeds, NFCARD shows **Connected** and exposes a remove action so the pairing can be deleted and created again.
+Before pairing, the app shows **Pair This iPhone**. After pairing starts, NFCARD immediately shows the Settings instructions and the pairing PIN when one is available. After pairing succeeds, NFCARD shows the paired state and exposes a remove action so the pairing can be deleted and created again.
 
 The normal interface does not expose the pairing plist filename, pairing-file byte count, Remote Pairing endpoint, raw network details, or internal pairing logs.
 
 ## Wallet Cards
+
+<p align="center">
+  <img src="Assets/Screenshots/wallet-cards.jpg" alt="NFCARD Wallet Cards screen" width="240">
+</p>
 
 The Wallet Cards tab is the main artwork workflow.
 
@@ -82,6 +89,10 @@ From there you can:
 NFCARD keeps the underlying card identifiers and transport details out of the primary pairing interface while retaining the data required for the Wallet workflow.
 
 ## Card Library
+
+<p align="center">
+  <img src="Assets/Screenshots/library.jpg" alt="NFCARD Card Library screen" width="240">
+</p>
 
 The **Library** tab opens NFCARD Card Studio:
 
@@ -106,6 +117,12 @@ The bundle identifier is retained for compatibility with existing NFCARD develop
 
 ```text
 .
+├── Assets/
+│   ├── NFCARDIconSource.jpg
+│   └── Screenshots/
+│       ├── pairing.jpg
+│       ├── wallet-cards.jpg
+│       └── library.jpg
 ├── Sources/
 │   ├── NFCARDNativeShell.swift
 │   ├── AirCardLibrary.swift
@@ -169,7 +186,7 @@ The automated NFCARD build verifies:
 - IPA archive integrity;
 - SHA-256 output.
 
-A successful build publishes the unsigned IPA and checksum to the rolling **NFCARD Latest** release.
+A successful main-branch build updates the rolling **NFCARD Latest** release with `NFCARD.ipa`. The GitHub Actions artifact retains the unsigned build output and SHA-256 checksum for build verification.
 
 ## Technical model
 
