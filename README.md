@@ -107,11 +107,11 @@ The site's own Discover, Studio, Library, and Export navigation remains intact. 
 ## Current app identity
 
 - **Display name:** `NFCARD`
-- **Bundle identifier:** `com.nightvibes33.aircard`
+- **Bundle identifier:** `com.nightvibes33.nfcard`
 - **Pinned AirCard upstream revision:** `097a058c984ffc33ccb697b9dfe8058be3e86244`
 - **Build output:** `.build/NFCARD-unsigned.ipa`
 
-The bundle identifier is retained for compatibility with existing NFCARD development state. The user-facing product name is **NFCARD**.
+NFCARD uses the standalone bundle identifier `com.nightvibes33.nfcard`. The user-facing product name is **NFCARD**.
 
 ## Repository layout
 
