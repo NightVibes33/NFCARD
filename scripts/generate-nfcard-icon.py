@@ -57,7 +57,7 @@ for y in range(H):
         lift=max(0.0,1.0-dcenter)*5.0
         r,g,b=BG[0]+lift,BG[1]+lift,BG[2]+lift
 
-        # Rear mint card.
+        # Rear NFCARD green card.
         d=rr_sdf(x,y,430,430,245,150,50,math.radians(-10))
         aa=1.0-smooth(-1.3,1.3,d)
         if aa>0:

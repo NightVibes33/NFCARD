@@ -18,7 +18,7 @@ The rolling **NFCARD Latest** release contains the current unsigned development 
 
 ## Features
 
-- Native dark graphite and mint NFCARD interface.
+- Native black and neon-green NFCARD interface.
 - Pair the current iPhone directly from NFCARD.
 - PIN-based pairing flow with persistent paired state.
 - Remove the active pairing and pair again when needed.
@@ -59,7 +59,7 @@ Reopen Wallet if needed to refresh the card appearance
 ## Pairing
 
 <p align="center">
-  <img src="Assets/Screenshots/pairing.jpg" alt="NFCARD Pairing screen" width="240">
+  <img src="./Assets/Screenshots/pairing.jpg" alt="NFCARD Pairing screen" width="320">
 </p>
 
 NFCARD presents pairing as a normal app flow instead of exposing its internal pairing record.
@@ -71,7 +71,7 @@ The normal interface does not expose the pairing plist filename, pairing-file by
 ## Wallet Cards
 
 <p align="center">
-  <img src="Assets/Screenshots/wallet-cards.jpg" alt="NFCARD Wallet Cards screen" width="240">
+  <img src="./Assets/Screenshots/wallet-cards.jpg" alt="NFCARD Wallet Cards screen" width="320">
 </p>
 
 The Wallet Cards tab is the main artwork workflow.
@@ -91,7 +91,7 @@ NFCARD keeps the underlying card identifiers and transport details out of the pr
 ## Card Library
 
 <p align="center">
-  <img src="Assets/Screenshots/library.jpg" alt="NFCARD Card Library screen" width="240">
+  <img src="./Assets/Screenshots/library.jpg" alt="NFCARD Card Library screen" width="320">
 </p>
 
 The **Library** tab opens NFCARD Card Studio:
