@@ -178,7 +178,6 @@ The automated NFCARD build verifies:
 - the pinned upstream revision;
 - NFCARD Pairing, Wallet Cards, and Library integration;
 - NFCARD branding;
-- removal of the old Passcode and Wallpapers tabs from the active tab model;
 - Remote Pairing endpoint support;
 - Card Library integration;
 - the generated app icon;
